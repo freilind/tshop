@@ -1,7 +1,10 @@
 import { FC, PropsWithChildren, useReducer, useEffect } from 'react';
-import { AuthContext, authReducer } from './';
+import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import axios, { AxiosError } from 'axios';
+
+import { AuthContext, authReducer } from './';
+
 import { tshopApi } from '../../api';
 import { IUser } from '../../interfaces';
 
@@ -10,20 +13,27 @@ export interface AuthState {
     user?: IUser;
 }
 
+
 const AUTH_INITIAL_STATE: AuthState = {
     isLoggedIn: false,
     user: undefined,
 }
 
+
 export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
 
     const [state, dispatch] = useReducer(authReducer, AUTH_INITIAL_STATE);
+    const router = useRouter();
 
     useEffect(() => {
         checkToken();
     }, [])
 
     const checkToken = async () => {
+
+        if (!Cookies.get('token')) {
+            return;
+        }
 
         try {
             const { data } = await tshopApi.get('/user/validate-token');
@@ -36,7 +46,6 @@ export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
     }
 
     const loginUser = async (email: string, password: string): Promise<boolean> => {
-
         try {
             const { data } = await tshopApi.post('/user/login', { email, password });
             const { token, user } = data;
@@ -46,7 +55,6 @@ export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
         } catch (error) {
             return false;
         }
-
     }
 
     const registerUser = async (name: string, email: string, password: string): Promise<{ hasError: boolean; message?: string }> => {
@@ -75,12 +83,19 @@ export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
         }
     }
 
+
+    const logout = () => {
+        Cookies.remove('token');
+        Cookies.remove('cart');
+        router.reload();
+    }
+
     return (
         <AuthContext.Provider value={{
             ...state,
             loginUser,
             registerUser,
-
+            logout,
         }}>
             {children}
         </AuthContext.Provider>

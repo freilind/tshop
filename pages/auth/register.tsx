@@ -4,6 +4,7 @@ import NextLink from 'next/link';
 import { Box, Button, Chip, Grid, Link, TextField, Typography } from '@mui/material';
 import { ErrorOutline } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
+
 import { AuthContext } from '../../context';
 import { AuthLayout } from '../../components/layouts'
 import { validations } from '../../utils';
@@ -18,7 +19,6 @@ const RegisterPage = () => {
 
     const router = useRouter();
     const { registerUser } = useContext(AuthContext);
-
 
     const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
     const [showError, setShowError] = useState(false);
@@ -37,7 +37,8 @@ const RegisterPage = () => {
         }
 
         // Todo: navegar a la pantalla que el usuario estaba
-        router.replace('/');
+        const destination = router.query.p?.toString() || '/';
+        router.replace(destination);
 
     }
 
@@ -113,7 +114,10 @@ const RegisterPage = () => {
                         </Grid>
 
                         <Grid item xs={12} display='flex' justifyContent='end'>
-                            <NextLink href="/auth/login" passHref>
+                            <NextLink
+                                href={router.query.p ? `/auth/login?p=${router.query.p}` : '/auth/login'}
+                                passHref
+                            >
                                 <Link underline='always'>
                                     ¿Ya tienes cuenta?
                                 </Link>
