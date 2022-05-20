@@ -9,8 +9,6 @@ import { ShopLayout } from '../../components/layouts';
 import { dbOrders } from '../../database';
 import { IOrder } from '../../interfaces';
 
-
-
 const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 100 },
     { field: 'fullname', headerName: 'Nombre Completo', width: 300 },
