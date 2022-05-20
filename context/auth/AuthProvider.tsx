@@ -1,10 +1,9 @@
 import { FC, PropsWithChildren, useReducer, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useSession, signOut } from 'next-auth/react';
 import Cookies from 'js-cookie';
 import axios, { AxiosError } from 'axios';
-
 import { AuthContext, authReducer } from './';
-
 import { tshopApi } from '../../api';
 import { IUser } from '../../interfaces';
 
@@ -13,21 +12,27 @@ export interface AuthState {
     user?: IUser;
 }
 
-
 const AUTH_INITIAL_STATE: AuthState = {
     isLoggedIn: false,
     user: undefined,
 }
 
-
 export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
 
     const [state, dispatch] = useReducer(authReducer, AUTH_INITIAL_STATE);
+    const { data, status } = useSession();
     const router = useRouter();
 
     useEffect(() => {
-        checkToken();
-    }, [])
+        if (status === 'authenticated') {
+            dispatch({ type: '[Auth] - Login', payload: data?.user as IUser })
+        }
+
+    }, [status, data])
+
+    // useEffect(() => {
+    //     checkToken();
+    // }, [])
 
     const checkToken = async () => {
 
@@ -45,7 +50,9 @@ export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
         }
     }
 
+
     const loginUser = async (email: string, password: string): Promise<boolean> => {
+
         try {
             const { data } = await tshopApi.post('/user/login', { email, password });
             const { token, user } = data;
@@ -55,7 +62,9 @@ export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
         } catch (error) {
             return false;
         }
+
     }
+
 
     const registerUser = async (name: string, email: string, password: string): Promise<{ hasError: boolean; message?: string }> => {
         try {
@@ -83,11 +92,20 @@ export const AuthProvider: FC<PropsWithChildren<any>> = ({ children }) => {
         }
     }
 
-
     const logout = () => {
-        Cookies.remove('token');
         Cookies.remove('cart');
-        router.reload();
+        Cookies.remove('firstName');
+        Cookies.remove('lastName');
+        Cookies.remove('address');
+        Cookies.remove('address2');
+        Cookies.remove('zip');
+        Cookies.remove('city');
+        Cookies.remove('country');
+        Cookies.remove('phone');
+
+        signOut();
+        // router.reload();
+        // Cookies.remove('token');
     }
 
     return (
