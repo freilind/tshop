@@ -1,8 +1,9 @@
-import { FC, useEffect, useReducer, PropsWithChildren } from 'react';
+import { FC, PropsWithChildren, useEffect, useReducer } from 'react';
 import Cookie from 'js-cookie';
-
-import { ICartProduct } from '../../interfaces';
+import axios, { AxiosError } from 'axios';
+import { ICartProduct, IOrder, ShippingAddress } from '../../interfaces';
 import { CartContext, cartReducer } from './';
+import { tshopApi } from '../../api';
 
 export interface CartState {
     isLoaded: boolean;
@@ -15,16 +16,6 @@ export interface CartState {
     shippingAddress?: ShippingAddress;
 }
 
-export interface ShippingAddress {
-    firstName: string;
-    lastName: string;
-    address: string;
-    address2?: string;
-    zip: string;
-    city: string;
-    country: string;
-    phone: string;
-}
 
 const CART_INITIAL_STATE: CartState = {
     isLoaded: false,
@@ -38,9 +29,7 @@ const CART_INITIAL_STATE: CartState = {
 
 
 export const CartProvider: FC<PropsWithChildren<any>> = ({ children }) => {
-
     const [state, dispatch] = useReducer(cartReducer, CART_INITIAL_STATE);
-
     // Efecto
     useEffect(() => {
         try {
@@ -71,15 +60,11 @@ export const CartProvider: FC<PropsWithChildren<any>> = ({ children }) => {
     }, [])
 
 
-
-
     useEffect(() => {
         Cookie.set('cart', JSON.stringify(state.cart));
     }, [state.cart]);
 
-
     useEffect(() => {
-
         const numberOfItems = state.cart.reduce((prev, current) => current.quantity + prev, 0);
         const subTotal = state.cart.reduce((prev, current) => (current.price * current.quantity) + prev, 0);
         const taxRate = Number(process.env.NEXT_PUBLIC_TAX_RATE || 0);
@@ -93,7 +78,6 @@ export const CartProvider: FC<PropsWithChildren<any>> = ({ children }) => {
 
         dispatch({ type: '[Cart] - Update order summary', payload: orderSummary });
     }, [state.cart]);
-
 
 
     const addProductToCart = (product: ICartProduct) => {
@@ -146,16 +130,59 @@ export const CartProvider: FC<PropsWithChildren<any>> = ({ children }) => {
         dispatch({ type: '[Cart] - Update Address', payload: address });
     }
 
+    const createOrder = async (): Promise<{ hasError: boolean; message: string; }> => {
+
+        if (!state.shippingAddress) {
+            throw new Error('No hay dirección de entrega');
+        }
+
+        const body: IOrder = {
+            orderItems: state.cart.map(p => ({
+                ...p,
+                size: p.size!
+            })),
+            shippingAddress: state.shippingAddress,
+            numberOfItems: state.numberOfItems,
+            subTotal: state.subTotal,
+            tax: state.tax,
+            total: state.total,
+            isPaid: false
+        }
+
+
+        try {
+            const { data } = await tshopApi.post<IOrder>('/orders', body);
+            dispatch({ type: '[Cart] - Order complete' });
+
+            return {
+                hasError: false,
+                message: data._id!
+            }
+
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                const error = err as AxiosError;
+                return {
+                    hasError: true,
+                    message: error.message
+                }
+            }
+            return {
+                hasError: true,
+                message: 'Error no controlado, hable con el administrador'
+            }
+        }
+
+    }
 
     return (
         <CartContext.Provider value={{
             ...state,
-
-            // Methods
             addProductToCart,
             removeCartProduct,
             updateCartQuantity,
             updateAddress,
+            createOrder,
         }}>
             {children}
         </CartContext.Provider>

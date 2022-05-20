@@ -20,10 +20,12 @@ export const SideMenu = () => {
         navigateTo(`/search/${searchTerm}`);
     }
 
+
     const navigateTo = (url: string) => {
         toggleSideMenu();
         router.push(url);
     }
+
 
     return (
         <Drawer
@@ -66,7 +68,10 @@ export const SideMenu = () => {
                                     <ListItemText primary={'Perfil'} />
                                 </ListItem>
 
-                                <ListItem button>
+                                <ListItem
+                                    button
+                                    onClick={() => navigateTo('/orders/history')}
+                                >
                                     <ListItemIcon>
                                         <ConfirmationNumberOutlined />
                                     </ListItemIcon>
@@ -133,6 +138,8 @@ export const SideMenu = () => {
                                 </ListItem>
                             )
                     }
+
+
 
                     {/* Admin */}
                     {
